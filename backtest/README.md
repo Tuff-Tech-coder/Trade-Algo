@@ -2,8 +2,7 @@
 
 Event-driven backtester that runs the project's **live** strategies (the
 `SignalGenerator` subclasses in `strategy_NN_*/`) on historical 1-minute data —
-so the code you test is the code you trade. Adapted from a prop-firm harness,
-with the evaluation model removed and the engine reframed to plain performance.
+so the code you test is the code you trade.
 
 ## Layout
 
@@ -29,8 +28,9 @@ python backtest/run.py --strategy-dir strategy_01_MES_INTRADAY_MOMENTUM --instru
 ```
 
 By default it measures the strategy's **raw edge** (no self-imposed limits) and
-reads `backtest/data/<instrument>_1m.csv` (see `data/README.md`). During the
-transition it also falls back to the legacy `mffu_backtest/data/` if present.
+reads `backtest/data/<instrument>_1m.csv` (columns `timestamp,open,high,low,close,volume`;
+tz-naive timestamps are treated as US/Eastern). Market data is not shipped with the
+repo — supply your own and check its redistribution terms.
 Useful flags:
 
 - `--limits` apply the strategy's `daily_loss_kill`
@@ -79,6 +79,3 @@ assume next-bar execution with 1-tick adverse slippage and a flat commission.
 
 - Full-engine bootstrap (resampling whole bar *sessions* and re-running the
   strategy) for a richer distribution than trade-level resampling.
-- Retiring `mffu_backtest/` entirely: move its CSVs into `backtest/data/`, then
-  delete the folder (it carries a nested `.git`, the TradersPost/Tradovate live
-  bridge, and stale reports). `run.py` already prefers `backtest/data/`.

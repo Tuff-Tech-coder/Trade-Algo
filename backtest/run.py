@@ -78,7 +78,7 @@ def main() -> None:
     ap.add_argument("--instrument", help="Symbol base (e.g. MES). Default: derived from live_symbol")
     ap.add_argument("--data", help="Explicit CSV path. Overrides --data-dir/--instrument")
     ap.add_argument("--data-dir", default=None,
-                    help="Folder with <instrument>_1m.csv (default: backtest/data, then legacy mffu_backtest/data)")
+                    help="Folder with <instrument>_1m.csv (default: backtest/data)")
     ap.add_argument("--start", default=None)
     ap.add_argument("--end", default=None)
     ap.add_argument("--equity", type=float, default=50_000.0, help="Starting account equity")
@@ -109,9 +109,7 @@ def main() -> None:
         if args.data_dir:
             data_path = Path(args.data_dir) / fname
         else:
-            # Prefer backtest/data; fall back to the legacy mffu_backtest/data.
-            candidates = [THIS_DIR / "data" / fname, PROJECT_ROOT / "mffu_backtest" / "data" / fname]
-            data_path = next((c for c in candidates if c.exists()), candidates[0])
+            data_path = THIS_DIR / "data" / fname
     if not data_path.exists():
         raise SystemExit(
             f"Data not found: {data_path}\n"

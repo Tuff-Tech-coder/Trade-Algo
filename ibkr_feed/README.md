@@ -78,7 +78,7 @@ Note: IBKR performs daily server maintenance at approximately 23:45–00:15 ET o
 From the project root:
 
 ```bash
-cd "IBKR Live Algo"
+cd Trade-Algo
 
 # Create a virtual environment
 python -m venv .venv
@@ -105,19 +105,19 @@ Start servers in this order:
 
 **Terminal 1 — risk server:**
 ```
-cd "IBKR Live Algo\shared"
+cd Trade-Algo\shared
 uvicorn risk_module:app --host 127.0.0.1 --port 8000
 ```
 
 **Terminal 2 — signal runner:**
 ```
-cd "IBKR Live Algo\shared"
+cd Trade-Algo\shared
 uvicorn signal_runner:app --host 127.0.0.1 --port 8001
 ```
 
 **Terminal 3 — IBKR bar feed:**
 ```
-cd "IBKR Live Algo\ibkr_feed"
+cd Trade-Algo\ibkr_feed
 python ibkr_feed.py --mode PAPER
 ```
 

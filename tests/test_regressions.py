@@ -241,6 +241,16 @@ class ReplayTests(unittest.TestCase):
         broker.submit_order(Order('long',1,99,110,'review'));broker.on_bar(Bar(ts,100,100,100,100,1,'MES'))
         events=broker.on_bar(Bar(ts+pd.Timedelta('1min'),90,91,89,90,1,'MES'))
         self.assertEqual(events,[('stop_hit',-50)])
+    def test_ambiguous_bar_resolves_stop_first(self):
+        broker=SimBroker('MES',.25,1.25,0,0);ts=pd.Timestamp('2024-01-02T15:00Z')
+        broker.submit_order(Order('long',1,99,102,'review'));broker.on_bar(Bar(ts,100,100,100,100,1,'MES'))
+        events=broker.on_bar(Bar(ts+pd.Timedelta('1min'),100.5,103,98,100,1,'MES'))  # touches stop and target
+        self.assertEqual(events,[('stop_hit',-5)])
+    def test_daily_loss_kill_blocks_entries(self):
+        acct=Account(50000,daily_loss_kill=5);acct.start_session(dt.date(2024,1,2))
+        self.assertTrue(acct.can_enter())
+        acct.realize_pnl(-5)
+        self.assertFalse(acct.can_enter())
     def test_completed_bucket_evaluated_at_last_minute(self):
         gen=make_generator();gen.check_signal=lambda df,htf:None
         adapter=SignalGeneratorAdapter(gen)

@@ -1,314 +1,121 @@
-# IBKR Live Algo — Automated Futures Trading Infrastructure
+# Trade-Algo: an intraday futures trading system, built to fail safe
 
-Automated futures trading infrastructure for a personally funded broker account. Uses Interactive Brokers for both market data and order execution — a single broker, no third-party router required. TradersPost remains available as an optional fallback. No TradingView subscription required.
+[![Offline tests and publication checks](https://github.com/Tuff-Tech-coder/Trade-Algo/actions/workflows/security.yml/badge.svg)](https://github.com/Tuff-Tech-coder/Trade-Algo/actions/workflows/security.yml)
 
-Stack: **IBKR TWS** (live bar data) → **Signal Runner** (strategy logic) → **Risk Server** (self-imposed risk checks) → **order execution** (direct via IBKR by default; TradersPost optional)
+An end-to-end automated trading stack for CME Micro E-mini (MES) futures on
+Interactive Brokers: live market data, a pluggable strategy layer, a pre-trade
+risk gate, bracket-order execution, and an event-driven backtester that runs
+the **same strategy code** as production. The engineering emphasis is on what
+goes wrong in real trading (stale data, duplicate signals, partial failures,
+restarts), and on proving behaviour with tests that never touch a broker.
 
----
+> **No performance claims.** This repository ships no market data and no P&L
+> results. The strategy implements a published idea; it is not presented as
+> profitable. Orders default to `PAPER` mode, and every test runs against mocks.
 
-## Project Structure
+## Architecture
 
-```
-IBKR Live Algo/
-├── README.md                       ← you are here
-├── .gitignore
-├── ibkr_feed/
-│   ├── ibkr_feed.py               ← connects to TWS, streams bars to signal runner
-│   ├── contract_map.py            ← IBKR contract specs and per-mode subscriptions
-│   ├── .env.example               ← template for IBKR feed secrets
-│   └── README.md                  ← full IBKR setup guide
-└── shared/
-    ├── risk_module.py             ← FastAPI risk server (port 8000)
-    ├── signal_runner.py           ← FastAPI bar receiver + strategy dispatcher (port 8001)
-    ├── signal_base.py             ← base class for strategy signal generators
-    ├── live_feed.py               ← BarStore: in-memory bar history with persistence
-    ├── indicators.py              ← EMA, RSI, ATR, VWAP, Bollinger, ADX
-    ├── news_updater.py            ← weekly high-impact news calendar refresh script
-    ├── news_calendar.yaml         ← optional news-event blackout schedule
-    ├── account_config.yaml        ← risk parameters and server config
-    ├── requirements.txt           ← all Python dependencies
-    └── .env.example               ← template for shared secrets
+```mermaid
+flowchart LR
+    TWS["IBKR TWS / Gateway"] -->|"5-min bars"| Feed["ibkr_feed<br/>bar streaming"]
+    Feed -->|"history + live bars"| Runner["Signal Runner :8001<br/>BarStore + dispatch"]
+    Runner --> Strat["Strategy generators<br/>strategy_NN_*/"]
+    Strat -->|"entry / exit signal"| Risk["Risk Server :8000<br/>pre-trade checks"]
+    Risk -->|"bracket order"| Exec["IBKR Executor<br/>entry + stop + target (OCA)"]
+    Exec --> TWS
+    Strat -. "same code" .- BT["Backtester<br/>next-bar fills, Monte Carlo"]
 ```
 
-Strategies live in their own folders at the project root alongside `shared/` and `ibkr_feed/`. See [Adding a Strategy](#adding-a-strategy) below.
-
----
-
-## How It Works
-
-IBKR TWS streams real-time OHLCV bars to `ibkr_feed.py`, which POSTs each completed bar to the signal runner's `/tv-bar/{symbol}/{tf_minutes}` endpoint. The signal runner pushes bars into an in-memory `BarStore` and dispatches them to all registered signal generators. When a generator detects an entry condition, it POSTs a signal to the risk server. The risk server runs your self-imposed pre-trade checks (drawdown floor, session window, news blackout, position cap) and, if accepted, places the order. By default it executes directly through Interactive Brokers (`order_router: ibkr`) — resolving the contract and submitting a bracket order (entry + stop + target); a TradersPost webhook remains available as an optional fallback (`order_router: traderspost`).
-
-Every risk check is your own choice and can be disabled — there are no externally imposed trading rules in this system.
-
-IBKR provides 2 days of historical bars on startup, so indicators are warm from the very first live bar — no manual seeding or warmup delay.
-
----
-
-## Setup
-
-### 1. Install dependencies
-
-```bash
-cd "IBKR Live Algo"
-
-python -m venv .venv
-.venv\Scripts\activate
-
-pip install --require-hashes --only-binary=:all: -r shared/requirements.lock --prefer-binary
-```
-
-### 2. Configure secrets
-
-```bash
-copy shared\.env.example shared\.env
-notepad shared\.env
-```
-
-Generate two random secrets (run twice):
-```bash
-python -c "import secrets; print(secrets.token_hex(32))"
-```
-
-Set:
-- `RISK_SERVER_API_KEY` — protects all risk server endpoints
-- `TV_WEBHOOK_SECRET` — authenticates bar POSTs from ibkr_feed to the signal runner
-- `TP_WEBHOOK_<STRATEGY_ID>` — one per strategy, from your TradersPost subscription page
-
-```bash
-copy ibkr_feed\.env.example ibkr_feed\.env
-notepad ibkr_feed\.env
-```
-
-Set `TV_WEBHOOK_SECRET` to the same value as above, and configure your TWS connection settings.
-
-Alternatively, set all variables as Windows environment variables — no `.env` files needed.
-
-### 3. Configure the risk server
-
-Edit `shared/account_config.yaml`:
-- Set `mode` to `PAPER` while testing, `LIVE` when you're ready to trade real money
-- Set `account.account_size` to your account's starting/reference balance
-- Set `risk_limits.max_drawdown` to your own max drawdown limit (or `0` to disable)
-- Set `risk_limits.max_open_contracts` to your own position cap (or `0` for unlimited)
-- Set `broker.account_label` to any label you like (used only in log lines)
-
-All risk limits are optional self-imposed guards; set any of them to `0` to turn them off.
-
-### 4. Set up TWS
-
-See `ibkr_feed/README.md` for full TWS configuration instructions including enabling the API socket, disabling the connection dialog, and configuring auto-logoff.
-
-### 5. Order execution
-
-By default (`order_router: ibkr`) orders are placed directly through Interactive Brokers — the same TWS/Gateway used for data, over a separate API client id (`TWS_EXEC_CLIENT_ID`, default 2). Nothing extra to set up: just confirm `mode`, `TWS_HOST`, `TWS_PORT`, and `TWS_EXEC_CLIENT_ID` in `shared/.env`. PAPER mode refuses to connect to a live-trading port as a safety guard, and strategies are expected to supply absolute `stop_loss` / `take_profit` prices in their signals.
-
-**Optional — TradersPost fallback** (`order_router: traderspost`): for each strategy, create a TradersPost strategy, connect it to your broker, and add its webhook URL to `shared/.env` as `TP_WEBHOOK_<STRATEGY_ID>`.
-
-### 6. Run
-
-Open three terminals, all with `.venv` activated:
-
-**Terminal 1 — risk server:**
-```
-cd "IBKR Live Algo\shared"
-uvicorn risk_module:app --host 127.0.0.1 --port 8000
-```
-
-**Terminal 2 — signal runner:**
-```
-cd "IBKR Live Algo\shared"
-uvicorn signal_runner:app --host 127.0.0.1 --port 8001
-```
-
-**Terminal 3 — IBKR bar feed:**
-```
-cd "IBKR Live Algo\ibkr_feed"
-python ibkr_feed.py --mode PAPER
-```
-
-Verify everything is running:
-```bash
-curl -H "X-Api-Key: YOUR_RISK_ADMIN_API_KEY" http://localhost:8000/health
-curl -H "Authorization: Bearer YOUR_TV_WEBHOOK_SECRET" http://localhost:8001/health
-```
-The signal runner returns `{"status":"ok"}` without the header; the full detail (mode, strategies, `bar_counts`) requires the `Authorization` bearer token so it isn't exposed openly.
-
----
-
-## Adding a Strategy
-
-Create a new folder at the project root alongside `shared/`:
-
-```
-IBKR Live Algo/
-└── strategy_01_MY_STRATEGY_NAME/
-    ├── signal_generator.py   ← strategy logic
-    └── risk_config.yaml      ← strategy-specific parameters
-```
-
-**`risk_config.yaml` minimum required fields:**
-```yaml
-strategy_id: MY_STRATEGY_NAME    # must match TP_WEBHOOK_MY_STRATEGY_NAME env var
-mode: PAPER                      # PAPER | LIVE
-live_symbol: MNQM6               # current front-month contract symbol
-session_start: "0930"
-session_end:   "1610"
-risk_usd: 200
-tp_multiplier: 2.0
-daily_loss_kill: 500             # per-strategy daily loss limit (0 = disabled)
-contracts: 2
-bar_size: 5
-tick_size: 0.25
-```
-
-**`signal_generator.py` minimum structure:**
-```python
-import sys, pathlib
-sys.path.insert(0, str(pathlib.Path(__file__).parent.parent / "shared"))
-
-from signal_base import SignalGenerator
-from indicators import ema, rsi, atr
-
-class MyStrategy(SignalGenerator):
-    strategy_id  = "MY_STRATEGY_NAME"
-    bar_size     = 5       # primary timeframe in minutes
-    htf_bar_size = None    # set to e.g. 15 for a multi-timeframe strategy
-
-    def check_signal(self, df, htf_df=None):
-        # df.iloc[-1] is the last closed bar; timestamps label bar opens
-        # return a signal dict to fire, or None to skip
-        return None
-```
-
-The signal runner auto-discovers all `strategy_*/` folders at startup. By default it loads every strategy it finds; to run only a subset in a given mode, list the strategy numbers in `MODE_STRATEGIES` in `signal_runner.py`.
-
----
-
-## Maintenance
-
-**Weekly:** run `python shared/news_updater.py` to refresh the high-impact news calendar.
-
-**On contract roll:** stop `ibkr_feed.py`, restart it — it auto-resolves the new front month. Update `live_symbol` in each strategy's `risk_config.yaml` to the new contract code.
-
-**Syncing account state:** after reviewing your broker / IBKR account, call:
-```bash
-curl -X POST http://localhost:8000/set_state \
-  -H "X-Api-Key: YOUR_RISK_ADMIN_API_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{"balance": 51500.00, "open_positions": 0}'
-```
-If you use a trailing drawdown floor, raise `drawdown_floor` here as your balance grows to lock in gains.
-
-**Each morning:** reset intraday counters before the session opens:
-```bash
-curl -X POST http://localhost:8000/reset_day \
-  -H "X-Api-Key: YOUR_RISK_ADMIN_API_KEY"
-```
-
----
-
-## Roadmap
-
-**Direct IBKR order execution — implemented (validate on paper first).** Orders are placed directly through Interactive Brokers via `shared/ibkr_executor.py`, selected by `order_router: ibkr`. It qualifies the exact contract supplied by the feed, submits bracket orders (entry + stop + target as an OCA group), flattens on exit, and reads positions/balance back from IBKR to keep the risk server in sync. TradersPost remains available as a fallback.
-
-Before trusting it with real money:
-
-- Run it against a **paper** account (`mode: PAPER`, `TWS_PORT=7497`) and confirm orders, brackets, and fills behave as expected.
-- Verify `ib_insync` runs cleanly inside the uvicorn event loop on your machine; if you hit "event loop already running" errors, `pip install nest_asyncio` and call `nest_asyncio.apply()` at the top of `risk_module.py`.
-
-Still open:
-
-- Handle partial fills, reversals, and order rejections explicitly (positions are currently re-read from IBKR after each order rather than tracked incrementally).
-- Subscribe to live fill/position events to update risk state continuously, not only after a submitted order.
-- Optionally collapse the three local processes into one runtime, sharing a single IBKR connection for data and execution and dropping the inter-process HTTP hops.
-
-
-## Debugging update — October 2, 2026
-
-Offline regression tests (run from the project root):
-
-```powershell
-.\.venv\Scripts\python.exe -X utf8 -B -m unittest discover -s tests -v
-```
-
-These tests mock IBKR and HTTP routing and never connect to a broker. Use
-`python -X utf8` for replay commands on Windows to avoid console encoding errors.
-
-The feed requests timezone-aware UTC historical data asynchronously. It seeds
-`/history/{symbol}/{tf}` before delivering buffered live bar closes; history
-does not dispatch signals. Both live and replay use the last closed bar at
-`df.iloc[-1]`. Signals older than the configured freshness threshold or dated
-in the future are skipped. Duplicate timestamps replace history rather than
-inflating it; generators deduplicate decisions and retry transport errors.
-
-The runner polls an independent one-second exit timer, so the 15:55 ET close
-does not depend on the next market-data bar. Entries reconcile broker position,
-working orders, and today's executions before evaluating strategy state.
-Accepted submission is distinct from a confirmed fill. Failed entry/close
-attempts do not permanently consume the strategy's attempt flag. Active close
-orders suppress duplicate exits; cancelled/rejected closes can be retried.
-
-Set `IBKR_ACCOUNT_ID` in `shared/.env` when more than one account is managed by
-TWS. Orders, positions, balance, P&L and execution history consistently use that
-account. PAPER execution requires a paper port and a DU account. Entries require
-reconciled positions/executions and fresh balance/P&L (120-second freshness
-limit); missing or invalid data blocks entries. Outstanding entry parent orders
-reserve their full quantity in addition to filled positions, conservatively
-double-counting partial fills until the parent completes. Bracket legs carry
-the selected account; an incomplete submission cancels created legs and blocks
-new entries pending reconciliation. Exits wait for cancellation confirmation,
-refresh positions, then submit a single close order per contract.
-
-The feed supplies the actual resolved contract ticker, including after rolls.
-The executor qualifies that exact ticker and never silently substitutes another
-expiry. A recovered open position supplies its own ticker for closure. Configured
-`live_symbol` still supplies the base instrument; keep it current for external
-signals and clarity. Contract selection remains nearest non-expired expiry,
-not a liquidity-based roll rule. Feed/executor disconnects require a restart;
-automatic reconnection is not implemented.
-
-Optional TradersPost routing still needs manual broker synchronization. Only a
-`/set_state` body containing balance, day_realized and open_positions refreshes
-entry readiness, for 60 seconds; partial settings updates do not. Local counts
-change after successful forwarding using the effective clipped quantity, but
-forwarding does not prove a broker fill. Direct IBKR is the tested default path.
-
-Refresh the enabled news calendar before a paper run: the checked-in events are
-from May/June 2026 and will not block October events. No trading parameters,
-credentials, calendars or deployment settings were changed in this debugging
-pass. Paper integration still needs to verify actual bracket/OCA behavior,
-partial fills, account updates, cancellation acknowledgments and reconnect
-recovery. Existing performance reports predate the corrected replay logic and
-must be regenerated before comparing strategy results.
-
-
-## Security and publication
-
-Read [SECURITY.md](SECURITY.md) before starting services or making a public repo.
-The APIs accept local clients and local Host headers only; documentation/schema
-routes are disabled. Never expose them through ngrok or an internet reverse
-proxy. A proxy running locally would also appear local, so middleware does not
-make such a deployment safe. Authentication is mandatory in development too.
-Generate independent secrets with `python -c "import secrets; print(secrets.token_hex(32))"`
-and put them only in ignored local `.env` files. Example keys are intentionally
-blank; copied placeholder values cannot start the services. `RISK_ADMIN_API_KEY`
-is separate from `RISK_SERVER_API_KEY` and protects account-state writes.
-
-Offline audits and tests must never place real orders. No credentials are
-needed to run tests. Install the tested dependency set with:
+Three local processes talk over authenticated loopback HTTP. A strategy is a
+folder containing a `SignalGenerator` subclass and a YAML config; the runner
+auto-discovers it, and the backtester drives the identical class through a thin
+adapter, so the code you test is the code you trade.
+
+## Engineering highlights
+
+**Execution safety** ([`shared/ibkr_executor.py`](shared/ibkr_executor.py))
+- `PAPER` mode refuses to connect to a live-trading port, and requires a paper (`DU`) account.
+- Entries are placed as an OCA bracket (entry + stop + target). If any leg fails to submit, the created legs are cancelled and new entries are blocked until reconciled.
+- Positions, working orders and today's executions are reconciled with the broker before every entry. Stale or missing broker state blocks trading (fail closed).
+- Concurrent or repeated exit requests submit exactly one close order; failed closes can be retried.
+- Contracts are qualified by exact ticker, so a roll never silently substitutes another expiry.
+
+**Risk gate** ([`shared/risk_module.py`](shared/risk_module.py))
+- Drawdown floor, session window, news blackout and max-open-contracts checks run before any order. Order size is clipped to remaining capacity.
+- Idempotent by signal ID: a retried signal returns the original result instead of placing a second order.
+- Stale or future-dated signals are rejected.
+
+**Strategy and data handling**
+- Closed-bar semantics are consistent in live and replay (`df.iloc[-1]` is always the last *closed* bar), so there is no look-ahead.
+- History seeding never dispatches signals. Duplicate timestamps replace rather than inflate history; naive or non-finite bars are rejected.
+- The end-of-day flatten runs on an independent one-second timer, not on the next market-data bar.
+- The strategy never substitutes a mid-morning price when the session-open bar is missing.
+
+**Backtester** ([`backtest/`](backtest/README.md))
+- Next-bar fills with adverse slippage and commission; a gap through a stop fills at the worse open price.
+- When one bar touches both stop and target, the stop wins (OHLC data cannot show which traded first).
+- Worst-case intrabar equity drives drawdown; Monte Carlo (bootstrap or shuffle) over the trade sequence; a sub-period walker for consistency checks; self-contained HTML reports.
+
+**Security** ([`SECURITY.md`](SECURITY.md))
+- Loopback-only clients and Host headers, constant-time key comparison, separate keys for signals, bars and admin writes, bodies bounded while streaming, API docs disabled, blank or placeholder keys fail closed.
+
+**Supply chain and CI** ([`.github/workflows/security.yml`](.github/workflows/security.yml))
+- Hash-locked dependencies (`--require-hashes`), GitHub Actions pinned by commit SHA, weekly `pip-audit`, and a publication guard (`tools/publication_guard.py`) that scans the working tree and full git history for keys, tokens, account IDs and personal paths. It runs as a pre-commit hook and in CI.
+
+## The strategy
+
+[`strategy_01_MES_INTRADAY_MOMENTUM`](strategy_01_MES_INTRADAY_MOMENTUM/signal_generator.py)
+implements the intraday-momentum effect described in Gao, Han, Li & Zhou,
+*Market Intraday Momentum* (Journal of Financial Economics, 2018). It anchors on
+the 09:30 ET session open, builds an ATR-scaled noise band around it, and enters
+in the direction of a close outside the band. It takes at most one trade per
+session, uses an ATR stop and an R-multiple target, can gate entries on a
+volatility ratio or news days, and flattens before the close. Parameters are in
+[`risk_config.yaml`](strategy_01_MES_INTRADAY_MOMENTUM/risk_config.yaml).
+
+## Testing
 
 ```powershell
 python -m pip --isolated install --require-hashes --only-binary=:all: -r shared/requirements.lock
 python -X utf8 -B -m unittest discover -s tests -v
-python tools/publication_guard.py --tree
+python tools/publication_guard.py
 ```
 
-After initializing Git, run `python tools/publication_guard.py` to inspect the
-Git index and reachable commit history before pushing. The tree-only mode
-checks candidate public files and excludes private local files; it cannot
-prove what Git will publish. GitHub CI adds tests, that publication guard and
-known-vulnerability checks without any broker credentials. Configure repository
-secret scanning/push protection and require this workflow to pass before merges.
-Generated reports, data CSVs, caches, credentials and backups are excluded from
-the public candidate by default. Review market-data redistribution rights before
-including any dataset. Do not publish the working directory as an unfiltered ZIP.
+53 offline tests mock IBKR and HTTP routing and never open a broker connection.
+They cover executor idempotency and bracket failure handling, stale-state
+gating, risk-server capacity and replay protection, feed timezone handling,
+the simulator's stop/gap/ambiguity rules, and the publication guard itself.
+Tested on Python 3.13 (`ib_insync` does not currently import on 3.14).
+
+[`ibkr-offline-demo.html`](ibkr-offline-demo.html) is a static page walking
+through five synthetic execution edge cases (stop fills, gaps, ambiguous bars,
+daily loss limits). Open it in any browser; it needs no server.
+
+## Project layout
+
+```
+Trade-Algo/
+├── ibkr_feed/            TWS bar streaming and contract resolution
+├── shared/               risk server, signal runner, IBKR executor, indicators, security
+├── strategy_01_MES_INTRADAY_MOMENTUM/   signal generator + config
+├── backtest/             event-driven simulator, Monte Carlo, report generator
+├── tests/                offline regression and security tests
+├── tools/                publication guard
+└── docs/OPERATIONS.md    setup, running, maintenance, hardening notes
+```
+
+## Status and limitations
+
+Stated plainly, because they matter for anything touching real money:
+
+- **Not validated end to end on a live paper account.** Bracket/OCA behaviour, partial fills, account updates and reconnect recovery still need paper-trading verification (see the [roadmap](docs/OPERATIONS.md#roadmap)).
+- No automatic reconnection: a feed or executor disconnect requires a restart.
+- The simulator does not model latency, exchange queueing or partial fills.
+- State and de-duplication live in memory, so the services run as a single worker on localhost only. They are not designed to be exposed to a network.
+- Market data and generated reports are intentionally excluded from the repo.
+
+## Documentation
+
+- [Operations guide](docs/OPERATIONS.md): setup, configuration, running, maintenance
+- [Backtest guide](backtest/README.md) and [IBKR feed guide](ibkr_feed/README.md)
+- [Security model](SECURITY.md)

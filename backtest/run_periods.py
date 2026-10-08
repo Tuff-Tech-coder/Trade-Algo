@@ -78,8 +78,7 @@ def _resolve_data(instrument: str, args) -> Path:
     fname = f"{instrument.lower()}_1m.csv"
     if args.data_dir:
         return Path(args.data_dir) / fname
-    cands = [THIS_DIR / "data" / fname, PROJECT_ROOT / "mffu_backtest" / "data" / fname]
-    return next((c for c in cands if c.exists()), cands[0])
+    return THIS_DIR / "data" / fname
 
 
 def main() -> None:

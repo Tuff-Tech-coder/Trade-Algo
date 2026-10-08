@@ -12,7 +12,7 @@ volatility, high-volume, and macro-news days.
 Implementation
 --------------
   * Anchor on the RTH session OPEN price (open of the first bar at/after 09:30 ET).
-  * Build a "noise band" = open Â± band_atr_mult * ATR (volatility-scaled).
+  * Build a "noise band" = open ± band_atr_mult * ATR (volatility-scaled).
   * When a closed bar prints OUTSIDE the band, enter in the direction of the
     breakout (momentum continuation).
   * Bracket the entry: ATR-based stop, R-multiple take-profit (handled by the
