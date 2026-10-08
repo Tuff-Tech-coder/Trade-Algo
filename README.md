@@ -119,3 +119,7 @@ Stated plainly, because they matter for anything touching real money:
 - [Operations guide](docs/OPERATIONS.md): setup, configuration, running, maintenance
 - [Backtest guide](backtest/README.md) and [IBKR feed guide](ibkr_feed/README.md)
 - [Security model](SECURITY.md)
+
+## License
+
+[MIT](LICENSE). This is research and educational software, not financial advice; use at your own risk.
