@@ -1,0 +1,54 @@
+# ─── High-Impact News Calendar ────────────────────────────────────────────────
+# Read by the risk server to optionally block new entries around high-impact
+# economic releases. This is your own choice — set enabled: false to ignore news
+# entirely. Run news_updater.py weekly to refresh upcoming_events.
+#
+# Blackout window: new entries are blocked from `pre_minutes` before an event
+# through `post_minutes` after it. Exit signals are never blocked.
+# ──────────────────────────────────────────────────────────────────────────────
+
+blackout_rules:
+  enabled: true
+  pre_minutes: 5
+  post_minutes: 2
+
+# ─── High-Impact Event Types ──────────────────────────────────────────────────
+event_types:
+  - FOMC_RATE_DECISION          # Fed rate decision + statement (~14:00 ET)
+  - FOMC_MINUTES                # 3 weeks after meeting (~14:00 ET)
+  - CPI                         # Consumer Price Index (~08:30 ET)
+  - NFP                         # Non-Farm Payrolls (first Friday ~08:30 ET)
+  - PCE                         # Personal Consumption Expenditures (~08:30 ET)
+  - GDP                         # Gross Domestic Product (~08:30 ET)
+  - EIA_CRUDE                   # EIA Petroleum Status (Wednesday ~10:30 ET)
+
+# ─── Upcoming Events ──────────────────────────────────────────────────────────
+# Format: YYYY-MM-DDTHH:MM:00  (interpreted as US/Eastern)
+# Run `python news_updater.py` each week to refresh this list.
+upcoming_events:
+  - id: FOMC_2026_06_12
+    type: FOMC_RATE_DECISION
+    datetime_et: "2026-06-11T14:00:00"
+    affects: [MES, MNQ, M2K, MYM]
+
+  - id: CPI_2026_06_10
+    type: CPI
+    datetime_et: "2026-06-10T08:30:00"
+    affects: [MES, MNQ, M2K, MYM, MGC]
+
+  - id: NFP_2026_06_05
+    type: NFP
+    datetime_et: "2026-06-05T08:30:00"
+    affects: [MES, MNQ, M2K, MYM, MGC]
+
+  - id: PCE_2026_05_29
+    type: PCE
+    datetime_et: "2026-05-29T08:30:00"
+    affects: [MES, MNQ, M2K, MYM, MGC]
+
+  - id: EIA_2026_05_28
+    type: EIA_CRUDE
+    datetime_et: "2026-05-28T10:30:00"
+    affects: [MCL]
+
+  # Add more events here or run news_updater.py to auto-populate

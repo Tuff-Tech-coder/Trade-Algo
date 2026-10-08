@@ -1,0 +1,3 @@
+#!/bin/sh
+# No secrets or broker connections are required for this stdlib-only check.
+exec python tools/publication_guard.py

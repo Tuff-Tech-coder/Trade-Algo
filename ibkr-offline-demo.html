@@ -1,0 +1,168 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src data:"><title>IBKR Algo · Offline engineering demo</title><style>
+    :root{color-scheme:light;--ink:#173044;--muted:#5c6e7b;--teal:#14686f}*{box-sizing:border-box}body{margin:0;background:#f4f7fa;color:var(--ink);font:16px/1.65 system-ui,-apple-system,sans-serif}main{max-width:980px;margin:auto;padding:56px 24px 48px}.eyebrow{font-size:12px;letter-spacing:.16em;font-weight:750;color:var(--teal);text-transform:uppercase}h1{font-size:clamp(34px,5vw,54px);line-height:1.1;letter-spacing:-.04em;max-width:760px;margin:16px 0}header p{max-width:710px;color:var(--muted)}.stats{display:flex;gap:32px;border-top:1px solid #d6e1ea;border-bottom:1px solid #d6e1ea;padding:20px 0;margin:32px 0}.stats strong{display:block;font-size:28px;line-height:1.2}.stats span{font-size:13px;color:var(--muted)}.card{background:white;border:1px solid #dce5ec;border-radius:12px;padding:28px;margin:16px 0;display:grid;grid-template-columns:48px 1fr;gap:16px}.number{color:var(--teal);font-size:24px;font-weight:700}h2{font-size:21px;margin:0 0 8px;line-height:1.3}.card p{color:var(--muted);margin:8px 0 14px}ul{list-style:none;margin:12px 0;padding:0}li{margin:8px 0}.tag{display:inline-block;background:#e0f1eb;color:#17614c;font-size:10px;font-weight:750;padding:3px 8px;border-radius:4px;margin-right:10px}summary{cursor:pointer;color:var(--teal);font-size:14px;font-weight:650}details{border-top:1px solid #e7edf2;padding-top:16px;margin-top:16px}pre{background:#f4f7fa;padding:16px;border-radius:6px;font-size:12px;white-space:pre-wrap;overflow-wrap:anywhere;max-height:300px;overflow:auto}svg{width:100%;height:auto}footer{font-size:13px;color:var(--muted);padding-top:24px}code{font-size:.9em}@media(max-width:550px){main{padding:32px 16px}.card{padding:20px;grid-template-columns:1fr;gap:8px}.stats{gap:20px;flex-wrap:wrap}}
+    </style></head><body><main><header><div class="eyebrow">IBKR Algo / Engineering demonstration</div><h1>What happens when execution gets difficult?</h1><p>Five reproducible scenarios exercise the strategy adapter, event loop, simulated broker and account gates. Every input is synthetic. This page demonstrates software behavior, not investment performance.</p></header><div class="stats"><div><strong>5</strong><span>offline scenarios</span></div><div><strong>11</strong><span>behavior checks</span></div><div><strong>PASS</strong><span>aggregate result</span></div><div><strong>0</strong><span>broker connections by design</span></div></div><section class="card"><div class="number">01</div><div><h2>Shared strategy replay</h2><p>The existing momentum strategy consumes completed five-minute bars warmed by synthetic premarket history. A quiet session is included.</p><ul><li><span class="tag">PASS</span>Four sessions, including one inactive session</li><li><span class="tag">PASS</span>At most one trade per session</li></ul><details><summary>Inspect simulation evidence</summary><p>2,400 synthetic bars · 3 closed trades · $8.75 simulated P&amp;L. Zero fees/slippage in these behavior fixtures.</p><svg viewBox="0 0 700 110" role="img" aria-label="Synthetic simulated equity, not market performance"><path d="M10 92H690" stroke="#d6e1ea"/><polyline points="10.0,90.0 14.8,90.0 19.6,90.0 24.5,90.0 29.3,43.6 34.1,43.6 38.9,43.6 43.8,43.6 48.6,43.6 53.4,43.6 58.2,43.6 63.0,43.6 67.9,43.6 72.7,43.6 77.5,43.6 82.3,43.6 87.2,43.6 92.0,43.6 96.8,43.6 101.6,43.6 106.5,43.6 111.3,43.6 116.1,43.6 120.9,43.6 125.7,43.6 130.6,43.6 135.4,43.6 140.2,43.6 145.0,43.6 149.9,43.6 154.7,43.6 159.5,43.6 164.3,43.6 169.1,43.6 174.0,43.6 178.8,43.6 183.6,43.6 188.4,43.6 193.3,43.6 198.1,71.4 202.9,71.4 207.7,71.4 212.6,71.4 217.4,71.4 222.2,71.4 227.0,71.4 231.8,71.4 236.7,71.4 241.5,71.4 246.3,71.4 251.1,71.4 256.0,71.4 260.8,71.4 265.6,71.4 270.4,71.4 275.2,71.4 280.1,71.4 284.9,71.4 289.7,71.4 294.5,71.4 299.4,71.4 304.2,71.4 309.0,71.4 313.8,71.4 318.7,71.4 323.5,71.4 328.3,71.4 333.1,71.4 337.9,71.4 342.8,71.4 347.6,71.4 352.4,71.4 357.2,71.4 362.1,71.4 366.9,71.4 371.7,25.0 376.5,25.0 381.3,25.0 386.2,25.0 391.0,25.0 395.8,25.0 400.6,25.0 405.5,25.0 410.3,25.0 415.1,25.0 419.9,25.0 424.8,25.0 429.6,25.0 434.4,25.0 439.2,25.0 444.0,25.0 448.9,25.0 453.7,25.0 458.5,25.0 463.3,25.0 468.2,25.0 473.0,25.0 477.8,25.0 482.6,25.0 487.4,25.0 492.3,25.0 497.1,25.0 501.9,25.0 506.7,25.0 511.6,25.0 516.4,25.0 521.2,25.0 526.0,25.0 530.9,25.0 535.7,25.0 540.5,25.0 545.3,25.0 550.1,25.0 555.0,25.0 559.8,25.0 564.6,25.0 569.4,25.0 574.3,25.0 579.1,25.0 583.9,25.0 588.7,25.0 593.5,25.0 598.4,25.0 603.2,25.0 608.0,25.0 612.8,25.0 617.7,25.0 622.5,25.0 627.3,25.0 632.1,25.0 637.0,25.0 641.8,25.0 646.6,25.0 651.4,25.0 656.2,25.0 661.1,25.0 665.9,25.0 670.7,25.0 675.5,25.0 680.4,25.0 685.2,25.0 690.0,25.0" fill="none" stroke="#14686f" stroke-width="2.5"/></svg><pre>[
+  {
+    &quot;bar_ts&quot;: &quot;2026-01-05 15:05:00+00:00&quot;,
+    &quot;side&quot;: &quot;long&quot;,
+    &quot;qty&quot;: 1,
+    &quot;price&quot;: 101.25,
+    &quot;commission&quot;: 0.0,
+    &quot;slippage_ticks&quot;: 0,
+    &quot;instrument&quot;: &quot;MES&quot;,
+    &quot;reason&quot;: &quot;MES_INTRADAY_MOMENTUM:buy&quot;
+  },
+  {
+    &quot;bar_ts&quot;: &quot;2026-01-05 15:08:00+00:00&quot;,
+    &quot;side&quot;: &quot;flat&quot;,
+    &quot;qty&quot;: 1,
+    &quot;price&quot;: 102.5,
+    &quot;commission&quot;: 0,
+    &quot;slippage_ticks&quot;: 0,
+    &quot;instrument&quot;: &quot;MES&quot;,
+    &quot;reason&quot;: &quot;target_hit&quot;
+  },
+  {
+    &quot;bar_ts&quot;: &quot;2026-01-06 15:05:00+00:00&quot;,
+    &quot;side&quot;: &quot;long&quot;,
+    &quot;qty&quot;: 1,
+    &quot;price&quot;: 101.25,
+    &quot;commission&quot;: 0.0,
+    &quot;slippage_ticks&quot;: 0,
+    &quot;instrument&quot;: &quot;MES&quot;,
+    &quot;reason&quot;: &quot;MES_INTRADAY_MOMENTUM:buy&quot;
+  },
+  {
+    &quot;bar_ts&quot;: &quot;2026-01-06 15:06:00+00:00&quot;,
+    &quot;side&quot;: &quot;flat&quot;,
+    &quot;qty&quot;: 1,
+    &quot;price&quot;: 100.5,
+    &quot;commission&quot;: 0,
+    &quot;slippage_ticks&quot;: 0,
+    &quot;instrument&quot;: &quot;MES&quot;,
+    &quot;reason&quot;: &quot;stop_hit&quot;
+  },
+  {
+    &quot;bar_ts&quot;: &quot;2026-01-07 15:05:00+00:00&quot;,
+    &quot;side&quot;: &quot;short&quot;,
+    &quot;qty&quot;: 1,
+    &quot;price&quot;: 98.75,
+    &quot;commission&quot;: 0.0,
+    &quot;slippage_ticks&quot;: 0,
+    &quot;instrument&quot;: &quot;MES&quot;,
+    &quot;reason&quot;: &quot;MES_INTRADAY_MOMENTUM:sell&quot;
+  },
+  {
+    &quot;bar_ts&quot;: &quot;2026-01-07 15:08:00+00:00&quot;,
+    &quot;side&quot;: &quot;flat&quot;,
+    &quot;qty&quot;: 1,
+    &quot;price&quot;: 97.5,
+    &quot;commission&quot;: 0,
+    &quot;slippage_ticks&quot;: 0,
+    &quot;instrument&quot;: &quot;MES&quot;,
+    &quot;reason&quot;: &quot;target_hit&quot;
+  }
+]</pre></details></div></section><section class="card"><div class="number">02</div><div><h2>Protective stop bounds exposure</h2><p>A bar trades below a protective stop. Exposure ends at the modeled stop fill; later lows must not create a false drawdown halt.</p><ul><li><span class="tag">PASS</span>Stop filled at 99</li><li><span class="tag">PASS</span>Account stays above the floor</li><li><span class="tag">PASS</span>Drawdown equals modeled exposure</li></ul><details><summary>Inspect simulation evidence</summary><p>4 synthetic bars · 2 closed trades · $-5.00 simulated P&amp;L. Zero fees/slippage in these behavior fixtures.</p><svg viewBox="0 0 700 110" role="img" aria-label="Synthetic simulated equity, not market performance"><path d="M10 92H690" stroke="#d6e1ea"/><polyline points="10.0,25.0 236.7,25.0 463.3,90.0 690.0,90.0" fill="none" stroke="#14686f" stroke-width="2.5"/></svg><pre>[
+  {
+    &quot;bar_ts&quot;: &quot;2026-01-05 14:31:00+00:00&quot;,
+    &quot;side&quot;: &quot;long&quot;,
+    &quot;qty&quot;: 1,
+    &quot;price&quot;: 100.0,
+    &quot;commission&quot;: 0.0,
+    &quot;slippage_ticks&quot;: 0,
+    &quot;instrument&quot;: &quot;MES&quot;,
+    &quot;reason&quot;: &quot;synthetic probe&quot;
+  },
+  {
+    &quot;bar_ts&quot;: &quot;2026-01-05 14:32:00+00:00&quot;,
+    &quot;side&quot;: &quot;flat&quot;,
+    &quot;qty&quot;: 1,
+    &quot;price&quot;: 99.0,
+    &quot;commission&quot;: 0,
+    &quot;slippage_ticks&quot;: 0,
+    &quot;instrument&quot;: &quot;MES&quot;,
+    &quot;reason&quot;: &quot;stop_hit&quot;
+  },
+  {
+    &quot;bar_ts&quot;: &quot;2026-01-05 14:33:00+00:00&quot;,
+    &quot;side&quot;: &quot;long&quot;,
+    &quot;qty&quot;: 1,
+    &quot;price&quot;: 100.0,
+    &quot;commission&quot;: 0.0,
+    &quot;slippage_ticks&quot;: 0,
+    &quot;instrument&quot;: &quot;MES&quot;,
+    &quot;reason&quot;: &quot;synthetic probe&quot;
+  },
+  {
+    &quot;bar_ts&quot;: &quot;2026-01-05 14:33:00+00:00&quot;,
+    &quot;side&quot;: &quot;flat&quot;,
+    &quot;qty&quot;: 1,
+    &quot;price&quot;: 100.0,
+    &quot;commission&quot;: 0,
+    &quot;slippage_ticks&quot;: 0,
+    &quot;instrument&quot;: &quot;MES&quot;,
+    &quot;reason&quot;: &quot;end_of_data&quot;
+  }
+]</pre></details></div></section><section class="card"><div class="number">03</div><div><h2>Gap through a stop</h2><p>The next bar opens below the stop. The simulator uses the worse opening price rather than an unavailable stop price.</p><ul><li><span class="tag">PASS</span>Gap exit filled at 90</li><li><span class="tag">PASS</span>Loss recorded as 50 simulated dollars</li></ul><details><summary>Inspect simulation evidence</summary><p>4 synthetic bars · 1 closed trades · $-50.00 simulated P&amp;L. Zero fees/slippage in these behavior fixtures.</p><svg viewBox="0 0 700 110" role="img" aria-label="Synthetic simulated equity, not market performance"><path d="M10 92H690" stroke="#d6e1ea"/><polyline points="10.0,25.0 236.7,25.0 463.3,90.0 690.0,90.0" fill="none" stroke="#14686f" stroke-width="2.5"/></svg><pre>[
+  {
+    &quot;bar_ts&quot;: &quot;2026-01-05 14:31:00+00:00&quot;,
+    &quot;side&quot;: &quot;long&quot;,
+    &quot;qty&quot;: 1,
+    &quot;price&quot;: 100.0,
+    &quot;commission&quot;: 0.0,
+    &quot;slippage_ticks&quot;: 0,
+    &quot;instrument&quot;: &quot;MES&quot;,
+    &quot;reason&quot;: &quot;synthetic probe&quot;
+  },
+  {
+    &quot;bar_ts&quot;: &quot;2026-01-05 14:32:00+00:00&quot;,
+    &quot;side&quot;: &quot;flat&quot;,
+    &quot;qty&quot;: 1,
+    &quot;price&quot;: 90.0,
+    &quot;commission&quot;: 0,
+    &quot;slippage_ticks&quot;: 0,
+    &quot;instrument&quot;: &quot;MES&quot;,
+    &quot;reason&quot;: &quot;stop_hit&quot;
+  }
+]</pre></details></div></section><section class="card"><div class="number">04</div><div><h2>Stop and target touched together</h2><p>OHLC data cannot reveal which level traded first. The simulator resolves ambiguity conservatively with the stop first.</p><ul><li><span class="tag">PASS</span>Stop wins the ambiguous bar</li><li><span class="tag">PASS</span>Target not credited</li></ul><details><summary>Inspect simulation evidence</summary><p>4 synthetic bars · 1 closed trades · $-5.00 simulated P&amp;L. Zero fees/slippage in these behavior fixtures.</p><svg viewBox="0 0 700 110" role="img" aria-label="Synthetic simulated equity, not market performance"><path d="M10 92H690" stroke="#d6e1ea"/><polyline points="10.0,25.0 236.7,25.0 463.3,90.0 690.0,90.0" fill="none" stroke="#14686f" stroke-width="2.5"/></svg><pre>[
+  {
+    &quot;bar_ts&quot;: &quot;2026-01-05 14:31:00+00:00&quot;,
+    &quot;side&quot;: &quot;long&quot;,
+    &quot;qty&quot;: 1,
+    &quot;price&quot;: 100.0,
+    &quot;commission&quot;: 0.0,
+    &quot;slippage_ticks&quot;: 0,
+    &quot;instrument&quot;: &quot;MES&quot;,
+    &quot;reason&quot;: &quot;synthetic probe&quot;
+  },
+  {
+    &quot;bar_ts&quot;: &quot;2026-01-05 14:32:00+00:00&quot;,
+    &quot;side&quot;: &quot;flat&quot;,
+    &quot;qty&quot;: 1,
+    &quot;price&quot;: 99.0,
+    &quot;commission&quot;: 0,
+    &quot;slippage_ticks&quot;: 0,
+    &quot;instrument&quot;: &quot;MES&quot;,
+    &quot;reason&quot;: &quot;stop_hit&quot;
+  }
+]</pre></details></div></section><section class="card"><div class="number">05</div><div><h2>Daily loss blocks further entries</h2><p>The strategy keeps attempting entries after a loss. The account gate must prevent another simulated entry in that session.</p><ul><li><span class="tag">PASS</span>Loss guard activated</li><li><span class="tag">PASS</span>Only one entry filled</li></ul><details><summary>Inspect simulation evidence</summary><p>4 synthetic bars · 1 closed trades · $-5.00 simulated P&amp;L. Zero fees/slippage in these behavior fixtures.</p><svg viewBox="0 0 700 110" role="img" aria-label="Synthetic simulated equity, not market performance"><path d="M10 92H690" stroke="#d6e1ea"/><polyline points="10.0,25.0 236.7,25.0 463.3,90.0 690.0,90.0" fill="none" stroke="#14686f" stroke-width="2.5"/></svg><pre>[
+  {
+    &quot;bar_ts&quot;: &quot;2026-01-05 14:31:00+00:00&quot;,
+    &quot;side&quot;: &quot;long&quot;,
+    &quot;qty&quot;: 1,
+    &quot;price&quot;: 100.0,
+    &quot;commission&quot;: 0.0,
+    &quot;slippage_ticks&quot;: 0,
+    &quot;instrument&quot;: &quot;MES&quot;,
+    &quot;reason&quot;: &quot;synthetic probe&quot;
+  },
+  {
+    &quot;bar_ts&quot;: &quot;2026-01-05 14:32:00+00:00&quot;,
+    &quot;side&quot;: &quot;flat&quot;,
+    &quot;qty&quot;: 1,
+    &quot;price&quot;: 99.0,
+    &quot;commission&quot;: 0,
+    &quot;slippage_ticks&quot;: 0,
+    &quot;instrument&quot;: &quot;MES&quot;,
+    &quot;reason&quot;: &quot;stop_hit&quot;
+  }
+]</pre></details></div></section><footer>Reproduce from the project root: <code>python -m demo.run</code>.<br>Fixtures use zero commission and zero slippage for clear assertions. The production simulator supports configurable costs. Partial fills, latency and exchange queues are not modeled. Broker execution remains outside this demo.</footer></main></body></html>
