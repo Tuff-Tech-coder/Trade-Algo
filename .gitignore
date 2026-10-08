@@ -1,0 +1,62 @@
+# ─── IBKR Live Algo — .gitignore ──────────────────────────────────────────────
+
+# ── Secrets (NEVER commit these) ──────────────────────────────────────────────
+shared/.env
+ibkr_feed/.env
+*.env
+
+# ── Runtime output ────────────────────────────────────────────────────────────
+logs/
+*.jsonl
+shared/bar_cache.json
+shared/bar_cache.pkl
+
+# ── Python ────────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+*.so
+
+# ── Virtual environments ───────────────────────────────────────────────────────
+venv/
+.venv/
+env/
+.env/
+
+# ── OS / editor noise ─────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+.idea/
+.vscode/
+
+# Secrets in alternate environments, copied credentials and private exports
+.env
+.env.*
+**/.env
+**/.env.*
+!.env.example
+!**/.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+*.bak
+*.backup
+*.zip
+*.log
+*.db
+*.sqlite*
+**/bar_cache.*
+.audit-venv/
+runtime-audit.txt
+
+# Broker-derived reports and licensed market data require separate review.
+backtest/reports/
+backtest/data/*.csv

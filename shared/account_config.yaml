@@ -1,0 +1,76 @@
+# ─── IBKR Live Algo — Account Configuration ──────────────────────────────────
+# Edit this file to match your own broker account and risk preferences.
+
+# ──────────────────────────────────────────────────────────────────────────────
+# 1. MODE
+# ──────────────────────────────────────────────────────────────────────────────
+# PAPER → paper-trading / simulated account: test strategies with no real money.
+# LIVE  → real-money account: orders are routed to your live broker account.
+#
+# The mode controls which symbol subscriptions are opened (see contract_map.py)
+# and which strategies load (see signal_runner.py). Start on PAPER and switch to
+# LIVE only once you are satisfied with the behavior.
+mode: PAPER   # PAPER | LIVE
+
+# Where accepted orders are sent:
+#   ibkr        → placed directly through Interactive Brokers (ib_insync).
+#                 Needs TWS/Gateway running and the TWS_* vars in shared/.env.
+#   traderspost → forwarded to a TradersPost webhook (legacy/optional fallback).
+order_router: ibkr   # ibkr | traderspost
+
+# ──────────────────────────────────────────────────────────────────────────────
+# 2. ACCOUNT
+# ──────────────────────────────────────────────────────────────────────────────
+account:
+  name: IBKR_LIVE_ALGO
+  account_size: 50000        # your account's starting / reference balance (USD)
+
+# ──────────────────────────────────────────────────────────────────────────────
+# 3. RISK LIMITS  (all self-imposed — set any value to 0 to disable that guard)
+# ──────────────────────────────────────────────────────────────────────────────
+# These are YOUR own safety rails, not rules imposed by any third party.
+risk_limits:
+  max_drawdown: 2000         # block new entries once balance falls this far
+                             #   below the drawdown floor. 0 = disabled.
+  drawdown_type: STATIC      # STATIC  → floor fixed at account_size - max_drawdown
+                             # TRAILING → raise the floor yourself via /set_state
+                             #            as the balance grows (locks in gains)
+  near_floor_buffer: 100     # block new entries when within this many USD of the
+                             #   drawdown floor (extra cushion). 0 = no cushion.
+  max_open_contracts: 30     # cap on total open contracts across all strategies.
+                             #   0 = unlimited.
+  max_order_quantity: 10     # hard ceiling on a SINGLE order's quantity, enforced
+                             #   by the executor as a last line of defense against
+                             #   a runaway/buggy strategy. 0 = no cap.
+
+# ──────────────────────────────────────────────────────────────────────────────
+# 4. BROKER ACCOUNT (for log labels only)
+# ──────────────────────────────────────────────────────────────────────────────
+broker:
+  account_label: YOUR_ACCOUNT_LABEL   # free-text label used only in log lines
+
+# ──────────────────────────────────────────────────────────────────────────────
+# 5. ORDER ROUTING WEBHOOK URLS — stored as environment variables, NOT here
+# ──────────────────────────────────────────────────────────────────────────────
+# Webhook URLs are secrets. Load them from shared/.env or your OS environment.
+# Format: TP_WEBHOOK_<STRATEGY_ID>=https://traderspost.io/trading/webhook/...
+# See shared/.env.example for the template.
+# (A direct-to-IBKR execution path is planned — see the project README roadmap.)
+
+# ──────────────────────────────────────────────────────────────────────────────
+# 6. RISK SERVER
+# ──────────────────────────────────────────────────────────────────────────────
+risk_server:
+  host: 127.0.0.1        # loopback only — not internet-facing
+  port: 8000
+  signal_runner_host: 127.0.0.1   # ibkr_feed posts here from localhost
+  signal_runner_port: 8001
+  webhook_url: http://localhost:8000/webhook
+  stale_signal_threshold_seconds: 30
+
+# ──────────────────────────────────────────────────────────────────────────────
+# 7. LOGGING
+# ──────────────────────────────────────────────────────────────────────────────
+logging:
+  log_dir: ./logs
+  level: INFO   # DEBUG | INFO | WARNING | ERROR

@@ -1,0 +1,41 @@
+# ─── Strategy 01 — MES Intraday Momentum (noise-area breakout) ────────────────
+# Edge basis: Gao, Han, Li & Zhou, "Market Intraday Momentum" (JFE 2018).
+# Once price travels far enough from the session OPEN, the move tends to
+# continue into the close. We enter the breakout, bracket it, and flatten
+# before the cash close (no overnight risk).
+
+strategy_id: MES_INTRADAY_MOMENTUM   # must match the folder suffix
+mode: PAPER                          # PAPER | LIVE
+
+live_symbol: MESM6                   # front-month MES contract (M6 = Jun 2026).
+                                     #   UPDATE on each quarterly roll.
+bar_size: 5                          # primary timeframe (minutes)
+tick_size: 0.25                      # MES tick
+contracts: 1                         # position size (contracts)
+
+# ── Risk ──────────────────────────────────────────────────────────────────────
+daily_loss_kill: 300     # per-strategy daily realized-loss cap (USD). 0 = off.
+tp_multiplier: 2.0       # take-profit distance = this * initial risk (R)
+
+# ── Session (US/Eastern, 24h HHMM) ──────────────────────────────────────────────
+session_start: "0930"    # RTH cash open (also the price-reference anchor)
+session_end:   "1610"
+
+# ── Strategy parameters ─────────────────────────────────────────────────────────
+atr_period:    14        # ATR lookback (volatility unit for the band & stop)
+band_atr_mult: 0.5       # noise band = session_open ± band_atr_mult * ATR
+stop_atr_mult: 1.0       # initial stop = entry ∓ stop_atr_mult * ATR
+entry_start:   "1000"    # no new entries before this (let the open + ATR settle)
+entry_cutoff:  "1530"    # no new entries after this
+flat_time:     "1555"    # force-flat before the close (capture the drift, no o/n)
+
+# ── Concentration gates ─────────────────────────────────────────────────────────
+# The intraday-momentum edge concentrates on high-volatility / macro-news days.
+# These restrict entries to those conditions (fewer, higher-conviction trades).
+vol_ratio_min:  1.10     # enter only when ATR(now) / trailing-avg ATR >= this.
+                         #   0 disables. Higher = more selective. Starting point —
+                         #   sweep it; don't trust a single hand-picked value.
+vol_lookback:   200      # bars for the trailing ATR baseline (~2.5 RTH days of 5m)
+news_day_only:  false    # if true, only enter on days listed in news_calendar_csv
+news_calendar_csv: ""    # set to "../backtest/data/news_calendar.csv" to enable
+                         #   the news-day gate (path is relative to this folder)
