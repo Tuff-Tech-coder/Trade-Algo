@@ -55,7 +55,6 @@ broker:
 # Webhook URLs are secrets. Load them from shared/.env or your OS environment.
 # Format: TP_WEBHOOK_<STRATEGY_ID>=https://traderspost.io/trading/webhook/...
 # See shared/.env.example for the template.
-# (A direct-to-IBKR execution path is planned — see the project README roadmap.)
 
 # ──────────────────────────────────────────────────────────────────────────────
 # 6. RISK SERVER

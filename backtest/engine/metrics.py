@@ -1,8 +1,8 @@
 """
 Performance metrics for a backtest run.
 
-Reframed from the prop-firm eval metrics (pass-rate / days-to-pass / consistency)
-to standard trading-performance stats for a personal account.
+Standard trading-performance statistics: P&L, drawdown, win rate, expectancy
+and risk-adjusted returns.
 """
 
 from __future__ import annotations

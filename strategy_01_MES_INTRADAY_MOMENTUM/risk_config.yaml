@@ -7,7 +7,7 @@
 strategy_id: MES_INTRADAY_MOMENTUM   # must match the folder suffix
 mode: PAPER                          # PAPER | LIVE
 
-live_symbol: MESM6                   # front-month MES contract (M6 = Jun 2026).
+live_symbol: MESZ6                   # front-month MES contract (Z6 = Dec 2026).
                                      #   UPDATE on each quarterly roll.
 bar_size: 5                          # primary timeframe (minutes)
 tick_size: 0.25                      # MES tick

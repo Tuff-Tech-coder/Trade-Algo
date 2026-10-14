@@ -1,8 +1,7 @@
 """
 Monte Carlo over a backtest's trade sequence.
 
-Reframed from the prop-firm eval (pass-rate) version to answer the questions a
-personal trader actually cares about: what range of outcomes and drawdowns is
+Answers the questions that matter before trusting a strategy: what range of outcomes and drawdowns is
 this edge likely to produce, and how robust is it to the order/sampling of trades?
 
 Two modes (operating on per-trade P&L from a RunResult):

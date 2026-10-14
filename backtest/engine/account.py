@@ -1,8 +1,7 @@
 """
 Plain trading account for the backtest engine.
 
-This replaces the prop-firm eval model (MFFUAccount) entirely. There is no
-"eval pass/fail", profit target, or consistency rule. It simply tracks equity
+There is no pass/fail target, profit target, or consistency rule. It tracks equity
 and P&L, and OPTIONALLY enforces the same self-imposed guards as the live risk
 server:
   - max_drawdown : halt new entries once equity falls this far below the start.

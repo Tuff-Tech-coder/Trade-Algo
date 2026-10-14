@@ -1,9 +1,9 @@
 """
 BacktestEngine: the main event loop.
 
-Iterates 1-minute bars chronologically and drives the broker + strategy. Unlike
-the prop-firm original, there is no eval pass/fail termination — it runs the full
-period and records performance. Optional self-imposed guards (drawdown floor,
+Iterates 1-minute bars chronologically and drives the broker + strategy. There
+is no early pass/fail termination — it runs the full period and records
+performance. Optional self-imposed guards (drawdown floor,
 daily-loss kill) live on the Account and gate entries when enabled.
 
 Per-bar order of operations:
