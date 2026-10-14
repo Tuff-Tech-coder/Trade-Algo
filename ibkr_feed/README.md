@@ -17,7 +17,7 @@ ibkr_feed.py
 signal_runner.py  (port 8001)
         │
         ▼
-risk_module.py → TradersPost → broker execution
+risk_module.py → IBKR bracket order (TradersPost optional)
 ```
 
 IBKR also provides 2 days of historical bars automatically on startup, so indicators are warm and ready to evaluate signals from the first bar — no manual seeding required.
@@ -28,7 +28,7 @@ IBKR also provides 2 days of historical bars automatically on startup, so indica
 
 ### 1. Interactive Brokers account
 
-A live account at interactivebrokers.com. IBKR has no minimum deposit requirement. This account is used for market data only — order execution still routes through TradersPost to your broker. (A direct-to-IBKR execution path is planned; see the project README roadmap.)
+A live account at interactivebrokers.com. IBKR has no minimum deposit requirement. The same TWS/Gateway session supplies market data and, by default, executes orders directly (`order_router: ibkr`). Use a paper account (port 7497) until you have validated the behavior.
 
 ### 2. Trader Workstation (TWS)
 
